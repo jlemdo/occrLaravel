@@ -1,0 +1,156 @@
+  /* Sidebar Styles */
+    .sidebar {
+      height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 4px;
+      background-color: #f8f9fa;
+      padding: 25px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    }
+
+    .sidebar a {
+      padding: 8px 16px;
+      text-decoration: none;
+      font-size: 16px;
+      color: #333;
+      display: block;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .sidebar a:hover {
+      background-color: #007bff;
+      color: white;
+    }
+
+    /* Content Area Styles */
+    .content {
+      margin-right: 10%;
+      padding: 20px;
+    }
+
+    .dropzone {
+      border: 2px dashed #ccc;
+      padding: 10px;
+      min-height: 48px;
+    }
+
+    .draggable {
+      cursor: move;
+      margin-bottom: 10px;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        position: relative;
+        height: auto;
+      }
+
+      .content {
+        margin-left: 0;
+      }
+    }
+
+   /* Parent container for proper positioning */
+.form-group {
+  position: relative;
+  padding: 10px;
+  border: 1px solid #ccc;
+  margin-bottom: 15px;
+  border-radius: 5px;
+}
+
+/* Remove button styling */
+.remove-btn {
+  cursor: pointer;
+  color: red;
+  position: absolute;
+  top: 2px;
+  right: 10px;
+  font-size: 18px;
+}
+
+	
+	/* Dropdown styling */
+.sidebar ul {
+    list-style: none;
+    padding: 5px;
+    margin: 0;
+}
+
+.sidebar .dropdown-menu {
+  display: none;
+  padding-left: 20px;
+}
+
+.sidebar .dropdown-menu li {
+  margin-bottom: 5px;
+}
+
+.sidebar .dropdown-toggle {
+  cursor: pointer;
+  display: block;
+  color: #000;
+  text-decoration: none;
+  padding: 10px;
+}
+
+.sidebar .dropdown-toggle:hover {
+  background-color: #ddd;
+}
+
+.sidebar .dropdown-menu a {
+  text-decoration: none;
+  color: #000;
+}
+
+.sidebar .dropdown-menu a:hover {
+  text-decoration: underline;
+}
+
+[contenteditable="true"] {
+  border: 1px dashed gray;
+  padding: 2px;
+  outline: none;
+}
+[contenteditable="true"]:focus {
+  border: 1px solid blue;
+}
+
+.remove-option {
+	
+	margin-left: 12px;
+	
+}
+.sidebar .icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  vertical-align: middle;
+}
+
+
+.form-group {
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.file-label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.file-input {
+  margin-bottom: 10px;
+}
+
+.image-preview-container {
+  margin-top: 10px;
+}
+
+
+
+

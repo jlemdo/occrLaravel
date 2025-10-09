@@ -1,0 +1,36 @@
+# 🇲🇽 CONFIGURACIÓN PARA MÉXICO - AGREGAR AL .env
+
+# ====================
+# TIMEZONE CONFIGURATION
+# ====================
+APP_TIMEZONE=America/Mexico_City
+
+# ====================
+# DATABASE TIMEZONE
+# ====================
+# Agregar esto a tu conexión de base de datos en config/database.php:
+# 'options' => [
+#     PDO::MYSQL_ATTR_INIT_COMMAND => "SET time_zone='-06:00'"
+# ]
+
+# ====================
+# LOGGING PARA DEBUG
+# ====================
+LOG_CHANNEL=stack
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+# ====================
+# CONFIGURACIÓN DE FECHAS
+# ====================
+# Esta configuración asegura que Carbon use el timezone correcto
+CARBON_LOCALE=es
+CARBON_TIMEZONE=America/Mexico_City
+
+# ====================
+# INSTRUCCIONES DE APLICACIÓN
+# ====================
+# 1. Agregar estas líneas a tu archivo .env
+# 2. Ejecutar: php apply_mexico_timezone.php
+# 3. Reiniciar el servidor web
+# 4. Probar la funcionalidad de fechas
