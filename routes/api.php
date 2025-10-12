@@ -163,6 +163,12 @@ Route::post('/settings/toggle-otp', function() {
 Route::post('/otp/send', [OTPController::class, 'sendOTP']);
 Route::post('/otp/verify', [OTPController::class, 'verifyOTP']);
 
+// SMS VERIFICATION - Verificación por teléfono con AWS SNS
+Route::post('/sms/send', [App\Http\Controllers\SMSVerificationController::class, 'sendOTP']);
+Route::post('/sms/verify', [App\Http\Controllers\SMSVerificationController::class, 'verifyOTP']);
+Route::post('/sms/resend', [App\Http\Controllers\SMSVerificationController::class, 'resendOTP']);
+Route::get('/sms/status', [App\Http\Controllers\SMSVerificationController::class, 'checkStatus']);
+
 // EMAIL TESTING - Endpoint para pruebas de emails
 Route::post('/emails/test', [EmailController::class, 'testEmail']);
 

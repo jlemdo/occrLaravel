@@ -30,6 +30,18 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+
+    'aws' => [
+        'key' => env('AWS_ACCESS_KEY_ID'),
+        'secret' => env('AWS_SECRET_ACCESS_KEY'),
+        'region' => env('AWS_DEFAULT_REGION', 'us-east-2'),
+    ],
+
+    'sms' => [
+        'enabled' => env('SMS_ENABLED', false),
+        'sender_id' => env('SMS_SENDER_ID', 'OCCR'),
+    ],
+
 	'google' => [
     'client_id'     => env('GOOGLE_CLIENT_ID'),
     'client_secret' => env('GOOGLE_CLIENT_SECRET'),
