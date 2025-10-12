@@ -3,7 +3,8 @@ name: Deploy to AWS
 on:
   push:
     branches:
-      - master  # Se ejecuta cuando haces push a master
+      - main  # Se ejecuta cuando haces push a main
+      - master  # También soporta master por compatibilidad
   workflow_dispatch:  # También permite ejecutar manualmente desde GitHub
 
 jobs:
@@ -42,7 +43,7 @@ jobs:
 
             # Pull latest code
             echo "📥 Pulling latest code from GitHub..."
-            git pull origin master
+            git pull origin main || git pull origin master
 
             # Install/update dependencies
             echo "📦 Installing dependencies..."
