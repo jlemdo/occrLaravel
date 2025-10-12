@@ -32,12 +32,12 @@ jobs:
           echo "Tests skipped for now"
 
       - name: 🚀 Deploy to AWS Server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.AWS_HOST }}
           username: ${{ secrets.AWS_USERNAME }}
           key: ${{ secrets.AWS_SSH_KEY }}
-          port: ${{ secrets.AWS_PORT || 22 }}
+          port: 22
           script: |
             cd /var/www/html/foodbackend
 
