@@ -114,6 +114,11 @@ Route::post('/cart/migrate', [CartController::class, 'migrateCart']);
 Route::post('/cleanup-temp-orders', [ControllsController::class, 'cleanupTempOrders']);
 
 // ===============================================
+// ❌ SISTEMA DE CANCELACIÓN DE PEDIDOS
+// ===============================================
+Route::post('/orders/cancel', [ControllsController::class, 'cancelOrder']);
+
+// ===============================================
 // 🏠 NUEVAS RUTAS PARA SISTEMA DE DIRECCIONES
 // ===============================================
 

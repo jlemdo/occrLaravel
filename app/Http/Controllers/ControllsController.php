@@ -1643,4 +1643,140 @@ class ControllsController extends Controller
             ], 500);
         }
     }
+
+    // ===============================================
+    // ❌ SISTEMA DE CANCELACIÓN DE PEDIDOS
+    // ===============================================
+
+    /**
+     * Cancelar pedido y guardar motivo en feedback
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function cancelOrder(Request $request)
+    {
+        try {
+            // Validar entrada
+            $request->validate([
+                'order_id' => 'required|integer|exists:orders,id',
+                'cancellation_reason' => 'required|string|max:1000',
+                'cancelled_by' => 'required|in:customer,driver,admin'
+            ]);
+
+            $orderId = $request->order_id;
+            $reason = $request->cancellation_reason;
+            $cancelledBy = $request->cancelled_by;
+
+            // Buscar la orden
+            $order = \App\Models\Order::find($orderId);
+
+            if (!$order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Orden no encontrada'
+                ], 404);
+            }
+
+            // Verificar que la orden no esté ya cancelada o entregada
+            if ($order->status === 'Cancelled') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La orden ya está cancelada'
+                ], 400);
+            }
+
+            if (in_array($order->status, ['Delivered', 'delivered', 'entregado'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede cancelar una orden ya entregada'
+                ], 400);
+            }
+
+            // Actualizar estado de la orden
+            $order->status = 'Cancelled';
+            $order->status_spanish = 'Cancelado';
+            $order->save();
+
+            // Guardar motivo en customerfeedbacks
+            \App\Models\Customerfeedback::create([
+                'orderno' => $order->id,
+                'message' => "Pedido cancelado por {$cancelledBy}. Motivo: {$reason}"
+            ]);
+
+            // Enviar notificaciones push
+            $firebaseService = new \App\Services\FirebaseNotificationService();
+
+            // 1. Notificación al CLIENTE
+            if ($cancelledBy === 'driver') {
+                // Driver canceló - notificar al cliente
+                if ($order->userid) {
+                    $customer = \App\Models\User::find($order->userid);
+                    if ($customer && !empty($customer->fcm_token)) {
+                        $firebaseService->sendToDevice(
+                            $customer->fcm_token,
+                            "⚠️ Problema con tu pedido",
+                            "El repartidor tuvo un problema y no pudo completar la entrega. Nos contactaremos contigo pronto.",
+                            [
+                                'type' => 'order_cancelled_by_driver',
+                                'order_id' => (string)$orderId
+                            ]
+                        );
+                    }
+                } elseif (!empty($order->user_email)) {
+                    // Guest customer
+                    $guestAddress = \App\Models\GuestAddress::where('guest_email', $order->user_email)->first();
+                    if ($guestAddress && !empty($guestAddress->fcm_token)) {
+                        $firebaseService->sendToDevice(
+                            $guestAddress->fcm_token,
+                            "⚠️ Problema con tu pedido",
+                            "El repartidor tuvo un problema y no pudo completar la entrega. Nos contactaremos contigo pronto.",
+                            [
+                                'type' => 'order_cancelled_by_driver',
+                                'order_id' => (string)$orderId
+                            ]
+                        );
+                    }
+                }
+            }
+
+            // 2. Notificación al DRIVER
+            if ($cancelledBy === 'customer' && $order->dman) {
+                $driver = \App\Models\User::find($order->dman);
+                if ($driver && !empty($driver->fcm_token)) {
+                    $firebaseService->sendToDevice(
+                        $driver->fcm_token,
+                        "❌ Pedido cancelado",
+                        "El cliente ha cancelado el pedido #{$orderId}.",
+                        [
+                            'type' => 'order_cancelled_by_customer',
+                            'order_id' => (string)$orderId
+                        ]
+                    );
+                }
+            }
+
+            Log::info("✅ ORDEN CANCELADA EXITOSAMENTE", [
+                'order_id' => $orderId,
+                'cancelled_by' => $cancelledBy,
+                'reason' => $reason
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pedido cancelado exitosamente',
+                'order_id' => $orderId
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error("❌ ERROR AL CANCELAR ORDEN", [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cancelar el pedido: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
