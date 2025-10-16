@@ -482,7 +482,6 @@ function toggleSystemFields() {
     // Campos específicos del Sistema 1 (Cupones)
     const couponCodeField = document.getElementById('coupon_code_field');
     const datesSection = document.getElementById('dates_section');
-    const appliesToField = document.getElementById('applies_to_field');
     const promotionSection = document.getElementById('promotion_section');
 
     // Vista previa
@@ -493,7 +492,6 @@ function toggleSystemFields() {
         // Mostrar campos de cupón
         couponCodeField.style.display = 'block';
         datesSection.style.display = 'block';
-        appliesToField.style.display = 'block';
         promotionSection.style.display = 'none';
 
         // Mostrar vista previa de cupón
@@ -509,7 +507,6 @@ function toggleSystemFields() {
         // Ocultar campos de cupón
         couponCodeField.style.display = 'none';
         datesSection.style.display = 'none';
-        appliesToField.style.display = 'none';
         promotionSection.style.display = 'block';
 
         // Mostrar vista previa de promoción
@@ -521,6 +518,12 @@ function toggleSystemFields() {
 
         // Actualizar botón
         updateBtn.innerHTML = '<i class="fas fa-percentage me-2"></i>Actualizar Promoción';
+    }
+
+    // ✅ FIX: applies_to_field SIEMPRE visible (para cupones Y promociones)
+    const appliesToField = document.getElementById('applies_to_field');
+    if (appliesToField) {
+        appliesToField.style.display = 'block';
     }
 }
 

@@ -15,7 +15,7 @@ class Kernel extends ConsoleKernel
         $schedule->command('send:task-reminders')->everyFiveMinutes();
 		$schedule->command('app:fetch-email')->everyMinute();
 		$schedule->command('transcriptions:poll')->everyFiveMinutes();
-		
+
 		// 🗑️ CLEANUP AUTOMÁTICO: Limpiar órdenes temporales cada 30 minutos
 		$schedule->call(function () {
 			try {
@@ -26,7 +26,17 @@ class Kernel extends ConsoleKernel
 				\Log::error('❌ Error en cleanup automático: ' . $e->getMessage());
 			}
 		})->everyThirtyMinutes()->name('cleanup-temp-orders');
-		
+
+		// 📸 INSTAGRAM SYNC: Sincronizar publicaciones de Instagram cada 24 horas
+		$schedule->command('instagram:sync')
+			->dailyAt('06:00') // Se ejecuta a las 6:00 AM
+			->onSuccess(function () {
+				\Log::info('✅ Instagram sync completado exitosamente');
+			})
+			->onFailure(function () {
+				\Log::error('❌ Instagram sync falló');
+			});
+
     }
 
     /**

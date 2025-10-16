@@ -1269,10 +1269,12 @@ class ControllsController extends Controller
         try {
             $request->validate([
                 'subtotal' => 'required|numeric|min:0',
+                'shipping_cost' => 'nullable|numeric|min:0',
                 'user_email' => 'nullable|string|email'
             ]);
 
             $subtotal = $request->subtotal;
+            $shippingCost = floatval($request->shipping_cost ?? 0);
             $userEmail = $request->user_email;
 
             // Buscar al usuario si hay email
@@ -1325,15 +1327,20 @@ class ControllsController extends Controller
                 }
 
                 if ($isApplicable) {
-                    // Calcular descuento
+                    // ✅ FIX: Respetar el campo applies_to
+                    $appliesTo = $promotion->applies_to ?? 'total';
+                    $baseAmount = $appliesTo === 'shipping' ? $shippingCost : $subtotal;
+
+                    // Calcular descuento sobre el monto correcto
                     $discountAmount = 0;
                     if ($promotion->discount_type === 'percentage') {
-                        $discountAmount = ($subtotal * $promotion->discount) / 100;
+                        $discountAmount = ($baseAmount * $promotion->discount) / 100;
                     } else {
                         $discountAmount = $promotion->discount;
                     }
 
-                    $discountAmount = min($discountAmount, $subtotal);
+                    // Asegurar que el descuento no sea mayor al monto base
+                    $discountAmount = min($discountAmount, $baseAmount);
 
                     $applicablePromotions[] = [
                         'id' => $promotion->id,
@@ -1341,6 +1348,7 @@ class ControllsController extends Controller
                         'type' => $promotion->type,
                         'discount' => $promotion->discount,
                         'discount_type' => $promotion->discount_type,
+                        'applies_to' => $appliesTo, // ← NUEVO: enviar al frontend
                         'discountAmount' => $discountAmount,
                         'minAmount' => $promotion->minimum_amount ?? 0
                     ];

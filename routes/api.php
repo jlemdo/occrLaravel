@@ -180,6 +180,24 @@ Route::post('/emails/test', [EmailController::class, 'testEmail']);
 // ✅ SISTEMA DE ACTUALIZACIONES AUTOMÁTICAS DE LA APP
 Route::get('/app-version', [AppController::class, 'checkVersion']);
 
+// ===============================================
+// 📸 SISTEMA DE FEED DE INSTAGRAM
+// ===============================================
+use App\Http\Controllers\InstagramController;
+use App\Http\Controllers\InstagramManualController;
+
+// Feed público (para la app)
+Route::get('/instagram-feed', [InstagramController::class, 'getFeed']);
+Route::get('/instagram-post/{id}', [InstagramController::class, 'getPost']);
+Route::post('/instagram/clear-cache', [InstagramController::class, 'clearCache']);
+
+// Gestión manual de posts (para ti)
+Route::post('/instagram/add-url', [InstagramManualController::class, 'addByUrl']);
+Route::post('/instagram/upload-media/{id}', [InstagramManualController::class, 'uploadMedia']);
+Route::get('/instagram/list-all', [InstagramManualController::class, 'listAll']);
+Route::post('/instagram/toggle-active/{id}', [InstagramManualController::class, 'toggleActive']);
+Route::delete('/instagram/delete/{id}', [InstagramManualController::class, 'delete']);
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

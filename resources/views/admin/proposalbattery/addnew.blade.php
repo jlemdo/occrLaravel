@@ -550,8 +550,8 @@ function updateSystemSelection() {
 function toggleSystemFields() {
     const isCoupon = document.querySelector('input[name="is_coupon"]:checked').value === '1';
 
-    // Campos de cupón (incluye applies_to_field)
-    const couponFields = ['coupon_code_field', 'dates_section', 'coupon_preview', 'applies_to_field'];
+    // ✅ FIX: Campos SOLO de cupón (SIN applies_to_field - ahora es común)
+    const couponFields = ['coupon_code_field', 'dates_section', 'coupon_preview'];
     couponFields.forEach(id => {
         const field = document.getElementById(id);
         if (isCoupon) {
