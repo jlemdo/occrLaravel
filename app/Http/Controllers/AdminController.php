@@ -326,7 +326,8 @@ class AdminController extends Controller
             $statusMessages = [
                 'Open' => ['status' => 'confirmed', 'message' => '¡Pedido confirmado!'],
                 'On the Way' => ['status' => 'on_the_way', 'message' => '¡Tu pedido está en camino! 🚚'],
-                'Delivered' => ['status' => 'delivered', 'message' => '¡Pedido entregado exitosamente! - ¡Esperamos que lo disfrutes! 🎉']
+                'Delivered' => ['status' => 'delivered', 'message' => '¡Pedido entregado exitosamente! - ¡Esperamos que lo disfrutes! 🎉'],
+                'Cancelled' => ['status' => 'cancelled', 'message' => 'Tu pedido ha sido cancelado. ❌']
             ];
 
             // Obtener el usuario del pedido
@@ -405,13 +406,14 @@ class AdminController extends Controller
         
         // 📦 1. Notificación para el DRIVER: "Nuevo pedido asignado"
         if ($dmann && !empty($dmann->fcm_token)) {
+            $orderNumberFormatted = $order->order_number ?: $order->id;
             $firebaseService->sendToDevice(
                 $dmann->fcm_token,
                 "📦 Nuevo pedido asignado",
-                "Se te ha asignado el pedido #{$order->order_number}. ¡Revisa los detalles!",
+                "Se te ha asignado el pedido #{$orderNumberFormatted}. ¡Revisa los detalles!",
                 [
                     'type' => 'new_order_assigned',
-                    'order_id' => (string)($order->order_number ?: $order->id),
+                    'order_id' => (string)$orderNumberFormatted,
                     'driver_name' => $drivername
                 ]
             );
@@ -420,13 +422,14 @@ class AdminController extends Controller
         // 🚗 2. Notificación para el USUARIO: "Repartidor asignado"
         $customer = User::find($order->userid);
         if ($customer && !empty($customer->fcm_token)) {
+            $orderNumberFormatted = $order->order_number ?: $order->id;
             $firebaseService->sendToDevice(
                 $customer->fcm_token,
                 "🚗 Repartidor asignado",
-                "{$drivername} será quien entregue tu pedido #{$order->order_number}.",
+                "{$drivername} será quien entregue tu pedido #{$orderNumberFormatted}.",
                 [
                     'type' => 'driver_assigned',
-                    'order_id' => (string)($order->order_number ?: $order->id),
+                    'order_id' => (string)$orderNumberFormatted,
                     'driver_name' => $drivername
                 ]
             );
@@ -435,13 +438,14 @@ class AdminController extends Controller
         elseif (!$customer && !empty($order->user_email)) {
             $guestAddress = \App\Models\GuestAddress::where('guest_email', $order->user_email)->first();
             if ($guestAddress && !empty($guestAddress->fcm_token)) {
+                $orderNumberFormatted = $order->order_number ?: $order->id;
                 $firebaseService->sendToDevice(
                     $guestAddress->fcm_token,
                     "🚗 Repartidor asignado",
-                    "{$drivername} será quien entregue tu pedido #{$order->order_number}.",
+                    "{$drivername} será quien entregue tu pedido #{$orderNumberFormatted}.",
                     [
                         'type' => 'driver_assigned',
-                        'order_id' => (string)($order->order_number ?: $order->id),
+                        'order_id' => (string)$orderNumberFormatted,
                         'driver_name' => $drivername
                     ]
                 );

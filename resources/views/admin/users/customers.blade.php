@@ -37,6 +37,7 @@
 .status-open { background: #fff3cd; color: #856404; }
 .status-on-the-way { background: #d1ecf1; color: #0c5460; }
 .status-delivered { background: #d4edda; color: #155724; }
+.status-cancelled { background: #f8d7da; color: #721c24; }
 
 .payment-badge {
     font-size: 0.7rem;
@@ -215,6 +216,7 @@
                                 <option value="Open">📋 Abierto</option>
                                 <option value="On the Way">🚚 En Camino</option>
                                 <option value="Delivered">✅ Entregado</option>
+                                <option value="Cancelled">❌ Cancelado</option>
                                 <option value="guest">👤 Solo Guests</option>
                                 <option value="registered">👥 Solo Registrados</option>
                             </select>
@@ -279,14 +281,16 @@
                                 <small class="opacity-75">{{ $order->created_at->format('d/m/Y H:i') }}</small>
                             </div>
                             <div class="text-end">
-                                <span class="status-badge 
+                                <span class="status-badge
                                     @if($order->status == 'Open') status-open
                                     @elseif($order->status == 'On the Way') status-on-the-way
                                     @elseif($order->status == 'Delivered') status-delivered
+                                    @elseif($order->status == 'Cancelled') status-cancelled
                                     @else status-open @endif">
                                     @if($order->status == 'Open') 📋 Abierto
                                     @elseif($order->status == 'On the Way') 🚚 En Camino
                                     @elseif($order->status == 'Delivered') ✅ Entregado
+                                    @elseif($order->status == 'Cancelled') ❌ Cancelado
                                     @else {{ $order->status }} @endif
                                 </span>
                             </div>
@@ -382,11 +386,12 @@
                                 <strong>Cambiar Estado:</strong>
                             </div>
                             <div class="ms-4">
-                                <select class="form-select form-select-sm update-status" 
+                                <select class="form-select form-select-sm update-status"
                                         onChange="change_sts(this.value, '{{ $order->id }}')">
                                     <option @if($order->status=='Open') selected @endif value="Open">📋 Abierto</option>
                                     <option @if($order->status=='On the Way') selected @endif value="On the Way">🚚 En Camino</option>
                                     <option @if($order->status=='Delivered') selected @endif value="Delivered">✅ Entregado</option>
+                                    <option @if($order->status=='Cancelled') selected @endif value="Cancelled">❌ Cancelado</option>
                                 </select>
                             </div>
                         </div>
