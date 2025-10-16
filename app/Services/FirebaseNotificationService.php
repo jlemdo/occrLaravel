@@ -15,22 +15,23 @@ class FirebaseNotificationService
     public function __construct()
     {
         try {
+            // 🔧 FIX: Usar config() en lugar de env() para que funcione con config:cache
             // Verificar que las variables de entorno estén configuradas
-            if (!env('FIREBASE_PROJECT_ID') || !env('FIREBASE_PRIVATE_KEY')) {
+            if (!config('firebase.project_id') || !config('firebase.private_key')) {
                 Log::warning('Firebase credentials not configured, push notifications will be disabled');
                 $this->messaging = null;
                 return;
             }
 
-            // Inicializar Firebase con credenciales del .env
+            // Inicializar Firebase con credenciales del config
             $firebase = (new Factory())
                 ->withServiceAccount([
                     'type' => 'service_account',
-                    'project_id' => env('FIREBASE_PROJECT_ID'),
-                    'private_key_id' => env('FIREBASE_PRIVATE_KEY_ID'),
-                    'private_key' => str_replace('\\n', "\n", env('FIREBASE_PRIVATE_KEY') ?? ''),
-                    'client_email' => env('FIREBASE_CLIENT_EMAIL'),
-                    'client_id' => env('FIREBASE_CLIENT_ID'),
+                    'project_id' => config('firebase.project_id'),
+                    'private_key_id' => config('firebase.private_key_id'),
+                    'private_key' => str_replace('\\n', "\n", config('firebase.private_key') ?? ''),
+                    'client_email' => config('firebase.client_email'),
+                    'client_id' => config('firebase.client_id'),
                     'auth_uri' => 'https://accounts.google.com/o/oauth2/auth',
                     'token_uri' => 'https://oauth2.googleapis.com/token',
                 ]);
