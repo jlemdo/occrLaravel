@@ -564,51 +564,71 @@ public function fetch_address_single_edit($id)
 }
 public function driverlocsubmit(Request $request)
 {
-    $order = Driverloc::create([
+    $driverLoc = Driverloc::create([
         'orderid' => $request->orderid,
         'driver_lat' => $request->driver_lat,
         'driver_long' => $request->driver_long,
     ]);
-    
-     $order = Order::find($request->orderid);
-     $order->status = 'On the Way';
-     $order->status_spanish = 'En camino';
-     $order->save();
 
-     // 🔔 Notificación push: Pedido en camino
-     $user = User::find($order->userid);
-     if ($user && !empty($user->fcm_token)) {
-         // 💰 Calcular total del pedido para notificación
-         $orderTotal = $this->calculateOrderTotal($order->order_number);
-         
-         $firebaseService = new FirebaseNotificationService();
-         $firebaseService->sendOrderNotification(
-             $user->fcm_token,
-             $order->order_number ?: $order->id,
-             'on_the_way',
-             "¡Tu pedido está en camino! Total: $" . number_format($orderTotal, 2) . " 🚚"
-         );
+     $order = Order::find($request->orderid);
+
+     // 📍 NUEVO: Verificar proximidad antes de cambiar estado
+     $distance = $this->calculateDistance(
+         $request->driver_lat,
+         $request->driver_long,
+         $order->customer_lat,
+         $order->customer_long
+     );
+
+     // 🔔 NUEVA NOTIFICACIÓN: Pedido llegando (500m o menos)
+     if ($distance <= 500 && $order->status !== 'Arriving') {
+         $this->sendProximityNotification($order, $distance);
+         $order->status = 'Arriving';
+         $order->status_spanish = 'Llegando';
      }
-     // 🔪 CIRUGÍA: Guest también recibe notificación "en camino"
-     elseif (!$user && !empty($order->user_email)) {
-         $guestAddress = GuestAddress::where('guest_email', $order->user_email)->first();
-         if ($guestAddress && !empty($guestAddress->fcm_token)) {
-             // 💰 Calcular total del pedido para Guest
+     // Primera actualización de ubicación → cambiar a "En camino"
+     elseif ($order->status !== 'On the Way' && $order->status !== 'Arriving') {
+         $order->status = 'On the Way';
+         $order->status_spanish = 'En camino';
+
+         // 🔔 Notificación push: Pedido en camino (solo primera vez)
+         $user = User::find($order->userid);
+         if ($user && !empty($user->fcm_token)) {
              $orderTotal = $this->calculateOrderTotal($order->order_number);
-                 
+
              $firebaseService = new FirebaseNotificationService();
              $firebaseService->sendOrderNotification(
-                 $guestAddress->fcm_token,
+                 $user->fcm_token,
                  $order->order_number ?: $order->id,
                  'on_the_way',
-                 "¡Tu pedido está en camino! Total: $" . number_format($orderTotal, 2) . " 🚚"
+                 "¡Tu pedido está en camino! Total: $" . number_format($orderTotal, 2) . " 🚚",
+                 $order->id
              );
+         }
+         // 🔪 CIRUGÍA: Guest también recibe notificación "en camino"
+         elseif (!$user && !empty($order->user_email)) {
+             $guestAddress = GuestAddress::where('guest_email', $order->user_email)->first();
+             if ($guestAddress && !empty($guestAddress->fcm_token)) {
+                 $orderTotal = $this->calculateOrderTotal($order->order_number);
+
+                 $firebaseService = new FirebaseNotificationService();
+                 $firebaseService->sendOrderNotification(
+                     $guestAddress->fcm_token,
+                     $order->order_number ?: $order->id,
+                     'on_the_way',
+                     "¡Tu pedido está en camino! Total: $" . number_format($orderTotal, 2) . " 🚚",
+                     $order->id
+                 );
+             }
          }
      }
 
+     $order->save();
+
     return response()->json([
         'message' => 'Location Submitted successfully',
-        'order' => $order
+        'order' => $order,
+        'distance_meters' => round($distance, 2)
     ], 201);
 }
 
@@ -1436,6 +1456,85 @@ public function getGuestOrders(Request $request, $email)
     {
         return Ordedetail::where('orderno', $orderNumber)
             ->sum(\DB::raw('item_price * item_qty'));
+    }
+
+    /**
+     * 📏 NUEVO: Calcular distancia entre dos puntos (Haversine formula)
+     * @return float distancia en metros
+     */
+    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $earthRadius = 6371000; // Radio de la Tierra en metros
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c; // Distancia en metros
+    }
+
+    /**
+     * 🔔 NUEVO: Enviar notificación de proximidad (500m o menos)
+     */
+    private function sendProximityNotification($order, $distance)
+    {
+        try {
+            $distanceFormatted = round($distance);
+            $firebaseService = new FirebaseNotificationService();
+
+            // Notificación para usuario registrado
+            $user = User::find($order->userid);
+            if ($user && !empty($user->fcm_token)) {
+                $firebaseService->sendToDevice(
+                    $user->fcm_token,
+                    "📍 ¡Tu pedido está llegando!",
+                    "Tu repartidor está a solo {$distanceFormatted} metros de tu ubicación. ¡Prepárate para recibirlo!",
+                    [
+                        'type' => 'order_arriving',
+                        'order_id' => (string)($order->order_number ?: $order->id),
+                        'distance_meters' => $distanceFormatted
+                    ]
+                );
+
+                \Log::info('✅ Proximity notification sent to user', [
+                    'order_id' => $order->id,
+                    'distance' => $distanceFormatted . 'm',
+                    'user_id' => $user->id
+                ]);
+            }
+            // Notificación para Guest
+            elseif (!$user && !empty($order->user_email)) {
+                $guestAddress = GuestAddress::where('guest_email', $order->user_email)->first();
+                if ($guestAddress && !empty($guestAddress->fcm_token)) {
+                    $firebaseService->sendToDevice(
+                        $guestAddress->fcm_token,
+                        "📍 ¡Tu pedido está llegando!",
+                        "Tu repartidor está a solo {$distanceFormatted} metros de tu ubicación. ¡Prepárate para recibirlo!",
+                        [
+                            'type' => 'order_arriving',
+                            'order_id' => (string)($order->order_number ?: $order->id),
+                            'distance_meters' => $distanceFormatted
+                        ]
+                    );
+
+                    \Log::info('✅ Proximity notification sent to guest', [
+                        'order_id' => $order->id,
+                        'distance' => $distanceFormatted . 'm',
+                        'guest_email' => $order->user_email
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('❌ Failed to send proximity notification', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
