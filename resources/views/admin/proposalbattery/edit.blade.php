@@ -314,11 +314,29 @@
                                                 </div>
                                                 <div class="col-md-4">
                                                     <div class="form-floating">
-                                                        <input type="number" step="0.01" class="form-control" id="minimum_amount" name="minimum_amount" 
+                                                        <input type="number" step="0.01" class="form-control" id="minimum_amount" name="minimum_amount"
                                                                value="{{old('minimum_amount', $proposals->minimum_amount ?? 0)}}" min="0" placeholder="Monto Mínimo">
                                                         <label for="minimum_amount">Monto Mínimo ($)</label>
                                                         <small class="text-muted">0 = sin mínimo de compra</small>
                                                     </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Aplicar a (Solo para Cupones - Sistema 1) -->
+                                            <div class="row" id="applies_to_field">
+                                                <div class="col-md-12">
+                                                    <div class="form-floating">
+                                                        <select name="applies_to" id="applies_to" class="form-control" required>
+                                                            <option value="total" {{($proposals->applies_to ?? 'total') == 'total' ? 'selected' : ''}}>Precio Total del Pedido</option>
+                                                            <option value="shipping" {{($proposals->applies_to ?? 'total') == 'shipping' ? 'selected' : ''}}>Solo Costo de Envío</option>
+                                                        </select>
+                                                        <label for="applies_to">Aplicar Descuento A *</label>
+                                                    </div>
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        <strong>Total:</strong> El descuento se aplica al precio total del pedido.
+                                                        <strong>Envío:</strong> El descuento se aplica solo al costo de envío (puede ser envío gratis con 100%).
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
@@ -460,44 +478,47 @@ function selectSystem(systemValue) {
 function toggleSystemFields() {
     const isCoupon = document.querySelector('input[name="is_coupon"]:checked').value === '1';
     const updateBtn = document.getElementById('update_btn');
-    
+
     // Campos específicos del Sistema 1 (Cupones)
     const couponCodeField = document.getElementById('coupon_code_field');
     const datesSection = document.getElementById('dates_section');
+    const appliesToField = document.getElementById('applies_to_field');
     const promotionSection = document.getElementById('promotion_section');
-    
+
     // Vista previa
     const couponPreview = document.getElementById('coupon-preview');
     const promotionPreview = document.getElementById('promotion-preview');
-    
+
     if (isCoupon) {
         // Mostrar campos de cupón
         couponCodeField.style.display = 'block';
         datesSection.style.display = 'block';
+        appliesToField.style.display = 'block';
         promotionSection.style.display = 'none';
-        
+
         // Mostrar vista previa de cupón
         couponPreview.style.display = 'block';
         promotionPreview.style.display = 'none';
-        
+
         // Hacer required el código de cupón
         document.getElementById('coupon_code').required = true;
-        
+
         // Actualizar botón
         updateBtn.innerHTML = '<i class="fas fa-ticket-alt me-2"></i>Actualizar Cupón';
     } else {
         // Ocultar campos de cupón
         couponCodeField.style.display = 'none';
         datesSection.style.display = 'none';
+        appliesToField.style.display = 'none';
         promotionSection.style.display = 'block';
-        
+
         // Mostrar vista previa de promoción
         couponPreview.style.display = 'none';
         promotionPreview.style.display = 'block';
-        
+
         // No requerir código de cupón
         document.getElementById('coupon_code').required = false;
-        
+
         // Actualizar botón
         updateBtn.innerHTML = '<i class="fas fa-percentage me-2"></i>Actualizar Promoción';
     }

@@ -766,7 +766,8 @@ class ControllsController extends Controller
             'coupon_code' => 'nullable|string|max:50|unique:proposalbatteries,coupon_code',
             'from' => 'nullable|date',
             'to' => 'nullable|date|after_or_equal:from',
-            'type' => 'nullable|in:Global,Individual,Birthday,Guest,Normal,Google,Apple'
+            'type' => 'nullable|in:Global,Individual,Birthday,Guest,Normal,Google,Apple',
+            'applies_to' => 'nullable|in:total,shipping'
         ]);
 
         // Si es cupón (Sistema 1), código es requerido
@@ -795,6 +796,7 @@ class ControllsController extends Controller
             'minimum_amount' => $request->minimum_amount ?? 0,
             'type' => $request->type ?? 'Global',
             'is_coupon' => $request->is_coupon,
+            'applies_to' => $request->applies_to ?? 'total',
         ]);
 
         $itemType = $request->is_coupon ? 'Cupón' : 'Promoción';
@@ -827,7 +829,8 @@ class ControllsController extends Controller
             'coupon_code' => 'nullable|string|max:50|unique:proposalbatteries,coupon_code,' . $id,
             'from' => 'nullable|date',
             'to' => 'nullable|date|after_or_equal:from',
-            'type' => 'nullable|in:Global,Individual,Birthday,Guest,Normal,Google,Apple'
+            'type' => 'nullable|in:Global,Individual,Birthday,Guest,Normal,Google,Apple',
+            'applies_to' => 'nullable|in:total,shipping'
         ]);
 
         // Si es cupón (Sistema 1), código es requerido
@@ -856,6 +859,7 @@ class ControllsController extends Controller
             'minimum_amount' => $request->minimum_amount ?? 0,
             'type' => $request->type ?? 'Global',
             'is_coupon' => $request->is_coupon,
+            'applies_to' => $request->applies_to ?? 'total',
         ]);
 
         $itemType = $request->is_coupon ? 'Cupón' : 'Promoción';
@@ -1140,11 +1144,13 @@ class ControllsController extends Controller
             $request->validate([
                 'coupon_code' => 'required|string|max:50',
                 'subtotal' => 'required|numeric|min:0',
+                'shipping_cost' => 'nullable|numeric|min:0',
                 'user_email' => 'nullable|string|email'
             ]);
 
             $couponCode = strtoupper(trim($request->coupon_code));
             $subtotal = floatval($request->subtotal);
+            $shippingCost = floatval($request->shipping_cost ?? 0);
             $userEmail = $request->user_email;
 
             // Buscar cupón
@@ -1175,7 +1181,7 @@ class ControllsController extends Controller
                 ], 400);
             }
 
-            // Validar monto mínimo
+            // Validar monto mínimo (siempre se valida contra el subtotal)
             if ($coupon->minimum_amount > 0 && $subtotal < $coupon->minimum_amount) {
                 return response()->json([
                     'status' => 'error',
@@ -1199,16 +1205,20 @@ class ControllsController extends Controller
                 }
             }
 
+            // Determinar sobre qué monto aplicar el descuento
+            $appliesTo = $coupon->applies_to ?? 'total';
+            $baseAmount = $appliesTo === 'shipping' ? $shippingCost : $subtotal;
+
             // Calcular descuento
             $discountAmount = 0;
             if ($coupon->discount_type === 'percentage') {
-                $discountAmount = ($subtotal * $coupon->discount) / 100;
+                $discountAmount = ($baseAmount * $coupon->discount) / 100;
             } else {
                 $discountAmount = $coupon->discount;
             }
 
-            // Asegurar que el descuento no sea mayor al subtotal
-            $discountAmount = min($discountAmount, $subtotal);
+            // Asegurar que el descuento no sea mayor al monto base
+            $discountAmount = min($discountAmount, $baseAmount);
 
             return response()->json([
                 'status' => 'success',
@@ -1218,9 +1228,10 @@ class ControllsController extends Controller
                     'name' => $coupon->name,
                     'discount' => $coupon->discount,
                     'discount_type' => $coupon->discount_type,
+                    'applies_to' => $appliesTo,
                     'discount_amount' => round($discountAmount, 2),
                     'minimum_amount' => $coupon->minimum_amount,
-                    'description' => $this->getCouponDescription($coupon)
+                    'description' => $this->getCouponDescription($coupon, $appliesTo)
                 ]
             ], 200);
         } catch (\Exception $e) {
@@ -1234,13 +1245,20 @@ class ControllsController extends Controller
     /**
      * Generar descripción del cupón
      */
-    private function getCouponDescription($coupon)
+    private function getCouponDescription($coupon, $appliesTo = null)
     {
+        $appliesTo = $appliesTo ?? ($coupon->applies_to ?? 'total');
+
+        $discountText = '';
         if ($coupon->discount_type === 'percentage') {
-            return $coupon->discount . '% de descuento';
+            $discountText = $coupon->discount . '% de descuento';
         } else {
-            return '$' . number_format($coupon->discount, 2) . ' de descuento';
+            $discountText = '$' . number_format($coupon->discount, 2) . ' de descuento';
         }
+
+        $appliesText = $appliesTo === 'shipping' ? ' en envío' : ' en total';
+
+        return $discountText . $appliesText;
     }
 
     /**

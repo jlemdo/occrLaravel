@@ -341,7 +341,7 @@
                                             <h5 class="section-title">
                                                 <i class="fas fa-calculator text-success"></i>Configuración de Descuento
                                             </h5>
-                                            
+
                                             <div class="row">
                                                 <div class="col-md-4">
                                                     <div class="form-floating mb-3">
@@ -352,23 +352,41 @@
                                                         <label for="discount_type">Tipo de Descuento</label>
                                                     </div>
                                                 </div>
-                                                
+
                                                 <div class="col-md-4">
                                                     <div class="form-floating mb-3">
-                                                        <input type="number" step="0.01" id="discount" class="form-control" 
+                                                        <input type="number" step="0.01" id="discount" class="form-control"
                                                                required name="discount" value="{{old('discount')}}" min="0" max="100">
                                                         <label for="discount" id="discount_label">Descuento (%) *</label>
                                                     </div>
                                                     <small class="form-text text-muted" id="discount_hint">Entre 0 y 100</small>
                                                 </div>
-                                                
+
                                                 <div class="col-md-4">
                                                     <div class="form-floating mb-3">
-                                                        <input type="number" step="0.01" id="minimum_amount" class="form-control" 
+                                                        <input type="number" step="0.01" id="minimum_amount" class="form-control"
                                                                name="minimum_amount" value="{{old('minimum_amount', 0)}}" min="0">
                                                         <label for="minimum_amount">Monto Mínimo ($)</label>
                                                     </div>
                                                     <small class="form-text text-muted">0 = sin mínimo</small>
+                                                </div>
+                                            </div>
+
+                                            <!-- Aplicar a (Solo para Cupones - Sistema 1) -->
+                                            <div class="row" id="applies_to_field">
+                                                <div class="col-md-12">
+                                                    <div class="form-floating mb-3">
+                                                        <select name="applies_to" id="applies_to" class="form-control" required>
+                                                            <option value="total" selected>Precio Total del Pedido</option>
+                                                            <option value="shipping">Solo Costo de Envío</option>
+                                                        </select>
+                                                        <label for="applies_to">Aplicar Descuento A *</label>
+                                                    </div>
+                                                    <small class="form-text text-muted">
+                                                        <i class="fas fa-info-circle me-1"></i>
+                                                        <strong>Total:</strong> El descuento se aplica al precio total del pedido.
+                                                        <strong>Envío:</strong> El descuento se aplica solo al costo de envío (puede ser envío gratis con 100%).
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
@@ -446,6 +464,11 @@
                                                     <small class="text-muted">
                                                         <i class="fas fa-info-circle me-1"></i>
                                                         Mínimo: $<span id="minimum_preview">0</span>
+                                                    </small>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-tag me-1"></i>
+                                                        Aplica a: <span id="applies_to_preview">Precio Total</span>
                                                     </small>
                                                 </div>
                                             </div>
@@ -526,9 +549,9 @@ function updateSystemSelection() {
 // Toggle de campos según sistema
 function toggleSystemFields() {
     const isCoupon = document.querySelector('input[name="is_coupon"]:checked').value === '1';
-    
-    // Campos de cupón
-    const couponFields = ['coupon_code_field', 'dates_section', 'coupon_preview'];
+
+    // Campos de cupón (incluye applies_to_field)
+    const couponFields = ['coupon_code_field', 'dates_section', 'coupon_preview', 'applies_to_field'];
     couponFields.forEach(id => {
         const field = document.getElementById(id);
         if (isCoupon) {
@@ -596,20 +619,25 @@ function updatePreview() {
     const code = document.getElementById('coupon_code').value || 'CÓDIGO';
     const discount = document.getElementById('discount').value || '0';
     const minimum = document.getElementById('minimum_amount').value || '0';
-    
+    const appliesTo = document.getElementById('applies_to').value;
+
     // Actualizar nombres
     document.getElementById('name_preview').textContent = name;
     document.getElementById('name_preview_2').textContent = name;
-    
+
     // Actualizar código
     document.getElementById('code_preview').textContent = code;
-    
+
     // Actualizar descuentos
     document.getElementById('discount_value').textContent = discount;
     document.getElementById('discount_value_2').textContent = discount;
-    
+
     // Actualizar mínimo
     document.getElementById('minimum_preview').textContent = minimum;
+
+    // Actualizar applies_to
+    const appliesToText = appliesTo === 'shipping' ? 'Solo Envío' : 'Precio Total';
+    document.getElementById('applies_to_preview').textContent = appliesToText;
 }
 
 // Event listeners
@@ -628,9 +656,12 @@ $(document).ready(function() {
     
     // Listener para tipo de descuento
     $('#discount_type').change(updateDiscountLabel);
-    
+
     // Listeners para vista previa
     $('#name, #coupon_code, #discount, #minimum_amount').on('input', updatePreview);
+
+    // Listener para applies_to
+    $('#applies_to').change(updatePreview);
     
     // Convertir código a mayúsculas
     $('#coupon_code').on('input', function() {
