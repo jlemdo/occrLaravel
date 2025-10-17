@@ -158,6 +158,83 @@ class EmailController extends Controller
     }
 
     /**
+     * Enviar notificación al admin sobre nuevo pedido
+     */
+    public static function sendAdminNewOrderNotification($order, $orderItems = [])
+    {
+        try {
+            $adminEmails = explode(',', env('ADMIN_NOTIFICATION_EMAILS'));
+            $adminEmails = array_map('trim', $adminEmails); // Limpiar espacios
+
+            if (empty($adminEmails) || empty($adminEmails[0])) {
+                Log::info("Admin notification skipped - no ADMIN_NOTIFICATION_EMAILS configured");
+                return;
+            }
+
+            $emailData = [
+                'orderNumber' => $order['id'] ?? $order['order_id'] ?? '000',
+                'customerName' => $order['customer_name'] ?? 'Cliente',
+                'customerEmail' => $order['user_email'] ?? 'No especificado',
+                'orderDate' => now()->format('d/m/Y H:i'),
+                'orderItems' => $orderItems,
+                'total' => $order['amount_paid'] ?? $order['total'] ?? 0,
+                'deliveryAddress' => $order['delivery_address'] ?? 'Por confirmar',
+                'deliveryDate' => $order['delivery_date'] ?? 'A confirmar',
+                'deliveryTime' => $order['delivery_slot'] ?? 'A confirmar',
+                'paymentMethod' => $order['payment_method'] ?? 'Tarjeta',
+                'paymentStatus' => $order['payment_status'] ?? 'paid'
+            ];
+
+            Mail::send('emails.admin-new-order', $emailData, function ($message) use ($adminEmails, $emailData) {
+                $message->to($adminEmails)
+                        ->subject("🆕 Nuevo Pedido #{$emailData['orderNumber']} - OCCR Productos")
+                        ->from(config('mail.from.address'), config('mail.from.name'));
+            });
+
+            Log::info("Admin new order email sent for order #{$emailData['orderNumber']} to " . implode(', ', $adminEmails));
+        } catch (\Exception $e) {
+            Log::error("Error sending admin new order email: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Enviar notificación al admin sobre pedido cancelado
+     */
+    public static function sendAdminOrderCancelledNotification($order, $reason, $cancelledBy)
+    {
+        try {
+            $adminEmails = explode(',', env('ADMIN_NOTIFICATION_EMAILS'));
+            $adminEmails = array_map('trim', $adminEmails); // Limpiar espacios
+
+            if (empty($adminEmails) || empty($adminEmails[0])) {
+                Log::info("Admin notification skipped - no ADMIN_NOTIFICATION_EMAILS configured");
+                return;
+            }
+
+            $emailData = [
+                'orderNumber' => $order['id'] ?? $order['order_id'] ?? '000',
+                'customerName' => $order['customer_name'] ?? 'Cliente',
+                'customerEmail' => $order['user_email'] ?? 'No especificado',
+                'cancelledAt' => now()->format('d/m/Y H:i'),
+                'cancelledBy' => $cancelledBy,
+                'reason' => $reason,
+                'total' => $order['amount_paid'] ?? $order['total'] ?? 0,
+                'deliveryAddress' => $order['delivery_address'] ?? 'No especificado'
+            ];
+
+            Mail::send('emails.admin-order-cancelled', $emailData, function ($message) use ($adminEmails, $emailData) {
+                $message->to($adminEmails)
+                        ->subject("❌ Pedido #{$emailData['orderNumber']} Cancelado - OCCR Productos")
+                        ->from(config('mail.from.address'), config('mail.from.name'));
+            });
+
+            Log::info("Admin order cancelled email sent for order #{$emailData['orderNumber']} to " . implode(', ', $adminEmails));
+        } catch (\Exception $e) {
+            Log::error("Error sending admin order cancelled email: " . $e->getMessage());
+        }
+    }
+
+    /**
      * Método para pruebas - enviar cualquier email
      */
     public function testEmail(Request $request)

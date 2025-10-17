@@ -205,6 +205,31 @@ class ControllsController extends Controller
                         'amount_paid' => $amount / 100
                     ]);
 
+                    // 📧 NUEVO: Enviar email al admin sobre nuevo pedido confirmado
+                    $orderItems = \App\Models\Ordedetail::where('orderno', $existingOrder->order_number)->get()->map(function($item) {
+                        return [
+                            'name' => $item->item_name,
+                            'quantity' => $item->item_qty,
+                            'price' => $item->item_price
+                        ];
+                    })->toArray();
+
+                    \App\Http\Controllers\EmailController::sendAdminNewOrderNotification(
+                        [
+                            'id' => $existingOrder->id,
+                            'customer_name' => $existingOrder->customer_name ?? 'Cliente',
+                            'user_email' => $existingOrder->user_email,
+                            'amount_paid' => $existingOrder->amount_paid,
+                            'total' => $existingOrder->total,
+                            'delivery_address' => $existingOrder->delivery_address,
+                            'delivery_date' => $existingOrder->delivery_date,
+                            'delivery_slot' => $existingOrder->delivery_slot,
+                            'payment_method' => 'Tarjeta',
+                            'payment_status' => $existingOrder->payment_status
+                        ],
+                        $orderItems
+                    );
+
                     // 🔪 CIRUGÍA: Enviar notificación de pago confirmado
                     // 🎉 NOTIFICACIÓN UNIFICADA: Pedido confirmado y pagado
                     $user = \App\Models\User::find($existingOrder->userid);
@@ -1710,6 +1735,20 @@ class ControllsController extends Controller
                 'orderno' => $order->id,
                 'message' => "Pedido cancelado por {$cancelledBy}. Motivo: {$reason}"
             ]);
+
+            // 📧 NUEVO: Enviar email al admin sobre cancelación
+            \App\Http\Controllers\EmailController::sendAdminOrderCancelledNotification(
+                [
+                    'id' => $order->id,
+                    'customer_name' => $order->customer_name ?? 'Cliente',
+                    'user_email' => $order->user_email,
+                    'amount_paid' => $order->amount_paid,
+                    'total' => $order->total,
+                    'delivery_address' => $order->delivery_address
+                ],
+                $reason,
+                $cancelledBy
+            );
 
             // Enviar notificaciones push
             $firebaseService = new \App\Services\FirebaseNotificationService();
